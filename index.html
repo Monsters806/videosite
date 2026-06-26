@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scroll Videos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111; display: flex; flex-direction: column; align-items: center; }
+        .video-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .video-item {
+            width: 100%;
+            margin-bottom: 10px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+        .video-item video {
+            width: 100%;
+            display: block;
+            background: #000;
+        }
+        /* optional – snap scrolling */
+        .video-container { scroll-snap-type: y mandatory; height: 100vh; overflow-y: scroll; }
+        .video-item { scroll-snap-align: start; height: 100vh; }
+        @media (max-width: 600px) { .video-item { height: 100vh; } }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <!-- VIDEO 1 (replace src with your own video URLs) -->
+        <div class="video-item">
+            <video src="https://www.w3schools.com/html/mov_bbb.mp4" controls muted playsinline></video>
+        </div>
+        <!-- VIDEO 2 -->
+        <div class="video-item">
+            <video src="https://www.w3schools.com/html/movie.mp4" controls muted playsinline></video>
+        </div>
+        <!-- VIDEO 3 – you can add more or use YouTube iframes -->
+        <div class="video-item">
+            <iframe width="100%" height="100%" src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0&controls=1" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+</body>
+</html>
