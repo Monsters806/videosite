@@ -42,11 +42,11 @@
 
     <script>
         // ===========================================
-        // 🔧 YAHAN PE APNI NAYI API KEY DAALEIN
-        const API_KEY = 'AIzaSyC_aThLqpNAkbQyzyx6rgO-CM53xpgkag4'; // <-- ISME APNI NAYI KEY PASTE KAREIN
+        // 🔧 YAHAN APNI API KEY DAALO (Jo abhi use kar rahe ho)
+        const API_KEY = 'AIzaSyC_aThLqpNAkbQyzyx6rgO-CM53xpgkag4';
         // ===========================================
 
-        const SEARCH_QUERY = 'gaming shorts'; // <-- Topic badlein (coding, comedy, travel, etc.)
+        const SEARCH_QUERY = 'gaming shorts'; // Topic badlo agar chahein toh
         const MAX_RESULTS = 15;
 
         async function fetchShorts() {
@@ -83,6 +83,29 @@
                     `;
                     container.appendChild(div);
                 });
+
+                // ===========================================================
+                // 🎯 YAHAN SE NAYA CODE HAI - Jo audio band karega scroll karne par
+                // ===========================================================
+                
+                // 1. Observer banayein jo check karega kaunsa video visible hai
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        const iframe = entry.target;
+                        // Agar video screen se bahar gayi (visible nahi hai)
+                        if (!entry.isIntersecting) {
+                            // YouTube ko command bhejo ki video pause kare
+                            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                        }
+                    });
+                }, { threshold: 0.5 }); // 50% visible hai ya nahi
+
+                // 2. Saare iframes (videos) ko observer ke andar daalo
+                setTimeout(() => {
+                    document.querySelectorAll('.video-item iframe').forEach(iframe => {
+                        observer.observe(iframe);
+                    });
+                }, 500);
 
             } catch (error) {
                 console.error(error);
