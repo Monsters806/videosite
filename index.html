@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YT Shorts Scroller</title>
+    <title>YT Shorts Infinite</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #000; display: flex; flex-direction: column; align-items: center; }
@@ -25,14 +25,14 @@
             justify-content: center;
         }
         iframe { width: 100%; height: 100%; border: none; }
-        .loading { 
+        .loading, .loader { 
             color: white; 
             text-align: center; 
             padding: 20px; 
             font-family: sans-serif; 
             font-size: 20px;
-            margin-top: 50px;
         }
+        .loader { height: 100vh; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
@@ -42,33 +42,46 @@
 
     <script>
         // ===========================================
-        // 🔧 YAHAN APNI API KEY DAALO (Jo abhi use kar rahe ho)
-        const API_KEY = 'AIzaSyC_aThLqpNAkbQyzyx6rgO-CM53xpgkag4';
+        // 🔧 YAHAN APNI API KEY DAALO (Abhi ye wali daal di hai)
+        const API_KEY = 'AIzaSyC_aThLqpNAkbQyzyx6rgO-CM53xpgkag4'; 
         // ===========================================
 
-        const SEARCH_QUERY = 'gaming shorts'; // Topic badlo agar chahein toh
-        const MAX_RESULTS = 15;
+        const SEARCH_QUERY = 'gaming shorts'; // Topic badalna ho toh yahan badlo
+        const MAX_RESULTS_PER_PAGE = 15; 
+        let nextPageToken = null; 
+        let isLoading = false;
 
-        async function fetchShorts() {
-            const url = `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&q=${encodeURIComponent(SEARCH_QUERY)}&part=snippet,id&type=video&videoDuration=short&order=date&maxResults=${MAX_RESULTS}`;
+        const container = document.getElementById('shorts-container');
+
+        async function fetchShorts(pageToken = '') {
+            if (isLoading) return;
+            isLoading = true;
+
+            if (pageToken) {
+                const loaderDiv = document.createElement('div');
+                loaderDiv.id = 'loader';
+                loaderDiv.className = 'loader';
+                loaderDiv.innerText = '⏳ Loading more...';
+                container.appendChild(loaderDiv);
+            }
+
+            let url = `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&q=${encodeURIComponent(SEARCH_QUERY)}&part=snippet,id&type=video&videoDuration=short&order=date&maxResults=${MAX_RESULTS_PER_PAGE}`;
+            if (pageToken) url += `&pageToken=${pageToken}`;
 
             try {
                 const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.error) {
-                    document.getElementById('shorts-container').innerHTML = `<div class="loading">❌ Error: ${data.error.message}. Check API key.</div>`;
-                    console.error(data.error);
+                    alert('Error: ' + data.error.message);
+                    isLoading = false;
                     return;
                 }
 
-                const container = document.getElementById('shorts-container');
-                container.innerHTML = '';
+                const loader = document.getElementById('loader');
+                if (loader) loader.remove();
 
-                if (data.items.length === 0) {
-                    container.innerHTML = '<div class="loading">😕 No shorts found. Try different keyword.</div>';
-                    return;
-                }
+                if (!pageToken) container.innerHTML = '';
 
                 data.items.forEach(item => {
                     const videoId = item.id.videoId;
@@ -84,36 +97,62 @@
                     container.appendChild(div);
                 });
 
-                // ===========================================================
-                // 🎯 YAHAN SE NAYA CODE HAI - Jo audio band karega scroll karne par
-                // ===========================================================
-                
-                // 1. Observer banayein jo check karega kaunsa video visible hai
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        const iframe = entry.target;
-                        // Agar video screen se bahar gayi (visible nahi hai)
-                        if (!entry.isIntersecting) {
-                            // YouTube ko command bhejo ki video pause kare
-                            iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-                        }
-                    });
-                }, { threshold: 0.5 }); // 50% visible hai ya nahi
+                nextPageToken = data.nextPageToken || null;
+                isLoading = false;
 
-                // 2. Saare iframes (videos) ko observer ke andar daalo
                 setTimeout(() => {
                     document.querySelectorAll('.video-item iframe').forEach(iframe => {
-                        observer.observe(iframe);
+                        if (!iframe.dataset.observed) {
+                            iframe.dataset.observed = 'true';
+                            observer.observe(iframe);
+                        }
                     });
                 }, 500);
 
             } catch (error) {
                 console.error(error);
-                document.getElementById('shorts-container').innerHTML = '<div class="loading">⚠️ Network error. Check internet.</div>';
+                const loader = document.getElementById('loader');
+                if (loader) loader.remove();
+                isLoading = false;
             }
         }
 
+        // Audio band karne wala Observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const iframe = entry.target;
+                if (!entry.isIntersecting) {
+                    iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                }
+            });
+        }, { threshold: 0.5 });
+
+        // Infinite Scroll Detector
+        const scrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !isLoading && nextPageToken !== null) {
+                    fetchShorts(nextPageToken);
+                }
+            });
+        }, { root: container, threshold: 0.1 });
+
         fetchShorts();
+
+        function watchLastItem() {
+            const items = container.querySelectorAll('.video-item');
+            if (items.length > 0) {
+                const lastItem = items[items.length - 1];
+                scrollObserver.observe(lastItem);
+            }
+        }
+
+        const mutationObserver = new MutationObserver(() => {
+            watchLastItem();
+        });
+        mutationObserver.observe(container, { childList: true, subtree: false });
+
+        setTimeout(watchLastItem, 1000);
+
     </script>
 </body>
 </html>
